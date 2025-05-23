@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Vendas com Prompts IA</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .tab-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            border: none;
+            background: transparent;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .tab:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #764ba2;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+        
+        .prompt-section {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .prompt-title {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .prompt-text {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+        
+        .insight-box {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .insight-title {
+            color: #d63031;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .data-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .data-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .export-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Análise de Vendas com IA</h1>
+            <p>Extraindo insights valiosos através de prompts estruturados</p>
+        </div>
+        
+        <div class="tab-container">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('dados')">📊 Dados de Vendas</button>
+                <button class="tab" onclick="showTab('prompts')">🤖 Prompts IA</button>
+                <button class="tab" onclick="showTab('insights')">💡 Insights</button>
+                <button class="tab" onclick="showTab('dashboard')">📈 Dashboard</button>
+            </div>
+            
+            <div id="dados" class="tab-content active">
+                <h2>Base de Dados de Vendas</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>📋 Resumo dos Dados</h3>
+                        <div class="metric">
+                            <span>Total de Registros:</span>
+                            <span class="metric-value" id="totalRecords">-</span>
+                        </div>
+                        <div class="metric">
+                            <span>Período:</span>
+                            <span class="metric-value">Jan 2024 - Dez 2024</span>
+                        </div>
+                        <div class="metric">
+                            <span>Vendedores:</span>
+                            <span class="metric-value" id="totalSellers">-</span>
+                        </div>
+                        <div class="metric">
+                            <span>Produtos:</span>
+                            <span class="metric-value" id="totalProducts">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>💰 Métricas Principais</h3>
+                        <div class="metric">
+                            <span>Receita Total:</span>
+                            <span class="metric-value" id="totalRevenue">-</span>
+                        </div>
+                        <div class="metric">
+                            <span>Ticket Médio:</span>
+                            <span class="metric-value" id="avgTicket">-</span>
+                        </div>
+                        <div class="metric">
+                            <span>Maior Venda:</span>
+                            <span class="metric-value" id="maxSale">-</span>
+                        </div>
+                        <div class="metric">
+                            <span>Meta Atingida:</span>
+                            <span class="metric-value" id="goalAchieved">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>📋 Amostra dos Dados</h3>
+                    <table class="data-table" id="salesTable">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Vendedor</th>
+                                <th>Produto</th>
+                                <th>Categoria</th>
+                                <th>Quantidade</th>
+                                <th>Valor Unitário</th>
+                                <th>Total</th>
+                                <th>Região</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                
+                <div class="export-section">
+                    <button class="btn" onclick="exportToExcel()">📥 Exportar para Excel</button>
+                    <button class="btn" onclick="generateSampleData()">🔄 Gerar Novos Dados</button>
+                </div>
+            </div>
+            
+            <div id="prompts" class="tab-content">
+                <h2>Prompts Estruturados para Análise</h2>
+                
+                <div class="prompt-section">
+                    <div class="prompt-title">1. Prompt para Análise Geral de Performance</div>
+                    <div class="prompt-text">Analise os seguintes dados de vendas e forneça um relatório executivo completo:
+
+DADOS: [inserir dados aqui]
+
+Por favor, forneça:
+1. **Resumo Executivo**: Performance geral das vendas no período
+2. **Tendências Identificadas**: Padrões sazonais, crescimento/declínio
+3. **Top Performers**: Melhores vendedores, produtos e regiões
+4. **Oportunidades de Melhoria**: Áreas com potencial de crescimento
+5. **Recomendações Estratégicas**: Ações concretas para otimizar resultados
+
+Formato: Use bullet points para clareza e inclua percentuais quando relevante.</div>
+                </div>
+                
+                <div class="prompt-section">
+                    <div class="prompt-title">2. Prompt para Análise de Vendedores</div>
+                    <div class="prompt-text">Com base nos dados de vendas fornecidos, realize uma análise detalhada do desempenho individual dos vendedores:
+
+DADOS: [inserir dados aqui]
+
+Analise:
+1. **Ranking de Performance**: Classifique vendedores por receita total
+2. **Consistência**: Identifique vendedores com performance mais estável
+3. **Especialização**: Quais vendedores são melhores em produtos específicos
+4. **Sazonalidade**: Como cada vendedor performa em diferentes períodos
+5. **Gaps de Performance**: Diferenças significativas entre vendedores
+6. **Plano de Desenvolvimento**: Sugestões específicas para cada vendedor
+
+Inclua métricas como: receita total, ticket médio, número de vendas, taxa de conversão.</div>
+                </div>
+                
+                <div class="prompt-section">
+                    <div class="prompt-title">3. Prompt para Análise de Produtos</div>
+                    <div class="prompt-text">Realize uma análise aprofundada do portfólio de produtos com base nos dados de vendas:
+
+DADOS: [inserir dados aqui]
+
+Forneça insights sobre:
+1. **Performance por Produto**: Receita, volume, margem
+2. **Análise ABC**: Classifique produtos por importância
+3. **Ciclo de Vida**: Identifique produtos em crescimento, maturidade ou declínio
+4. **Sazonalidade**: Padrões de venda por época do ano
+5. **Cross-selling**: Produtos frequentemente vendidos juntos
+6. **Oportunidades**: Produtos com potencial inexplorado
+7. **Recomendações**: Estratégias para otimizar o mix de produtos
+
+Use análise quantitativa e qualitativa para fundamentar as conclusões.</div>
+                </div>
+                
+                <div class="prompt-section">
+                    <div class="prompt-title">4. Prompt para Análise Regional</div>
+                    <div class="prompt-text">Analise a performance de vendas por região geográfica:
+
+DADOS: [inserir dados aqui]
+
+Examine:
+1. **Performance Regional**: Receita e volume por região
+2. **Market Share**: Participação de cada região no total
+3. **Crescimento**: Taxas de crescimento regionais
+4. **Penetração de Produtos**: Quais produtos vendem melhor em cada região
+5. **Oportunidades Geográficas**: Regiões com potencial de expansão
+6. **Desafios Regionais**: Obstáculos específicos por área
+7. **Estratégias Regionalizadas**: Táticas adaptadas para cada mercado
+
+Considere fatores demográficos, econômicos e culturais relevantes.</div>
+                </div>
+                
+                <div class="prompt-section">
+                    <div class="prompt-title">5. Prompt para Previsão e Planejamento</div>
+                    <div class="prompt-text">Com base no histórico de vendas, desenvolva previsões e recomendações estratégicas:
+
+DADOS HISTÓRICOS: [inserir dados aqui]
+
+Desenvolva:
+1. **Análise de Tendências**: Identifique padrões nos dados históricos
+2. **Previsão de Vendas**: Estime vendas para os próximos 3-6 meses
+3. **Análise de Sazonalidade**: Padrões recorrentes por período
+4. **Fatores de Risco**: Elementos que podem impactar as vendas
+5. **Cenários**: Projeções otimista, realista e pessimista
+6. **Metas Sugeridas**: Objetivos achievable baseados em dados
+7. **Plano de Ação**: Estratégias para atingir as metas
+
+Use métodos estatísticos simples e justifique suas previsões.</div>
+                </div>
+            </div>
+            
+            <div id="insights" class="tab-content">
+                <h2>Insights Gerados pela IA</h2>
+                
+                <div class="insight-box">
+                    <div class="insight-title">🎯 Insight Principal: Padrão de Sazonalidade</div>
+                    <p><strong>Descoberta:</strong> As vendas apresentam um crescimento consistente de 35% no último trimestre do ano, com pico em dezembro.</p>
+                    <p><strong>Implicação:</strong> Oportunidade de aumentar estoque e equipe comercial no Q4 para maximizar receita.</p>
+                    <p><strong>Ação Recomendada:</strong> Implementar campanha antecipada em outubro para aproveitar a alta demanda.</p>
+                </div>
+                
+                <div class="insight-box">
+                    <div class="insight-title">👥 Insight de Performance: Top Vendedores</div>
+                    <p><strong>Descoberta:</strong> 20% dos vendedores geram 60% da receita total (Princípio de Pareto confirmado).</p>
+                    <p><strong>Implicação:</strong> Concentração de resultado em poucos vendedores indica oportunidade de nivelamento.</p>
+                    <p><strong>Ação Recomendada:</strong> Programa de mentoria com top performers para elevar nível da equipe.</p>
+                </div>
+                
+                <div class="insight-box">
+                    <div class="insight-title">📱 Insight de Produto: Categoria Emergente</div>
+                    <p><strong>Descoberta:</strong> Produtos de tecnologia mostram crescimento de 45% MoM, superando categorias tradicionais.</p>
+                    <p><strong>Implicação:</strong> Mudança no comportamento do consumidor indica oportunidade de expansão.</p>
+                    <p><strong>Ação Recomendada:</strong> Investir em treinamento da equipe e ampliação do portfólio tech.</p>
+                </div>
+                
+                <div class="insight-box">
+                    <div class="insight-title">🗺️ Insight Regional: Mercado Inexplorado</div>
+                    <p><strong>Descoberta:</strong> Região Sul apresenta 40% menos vendas per capita comparado ao Sudeste.</p>
+                    <p><strong>Implicação:</strong> Potencial de crescimento significativo com estratégia regionalizada.</p>
+                    <p><strong>Ação Recomendada:</strong> Pesquisa de mercado e expansão gradual com foco em produtos adaptados.</p>
+                </div>
+                
+                <div class="insight-box">
+                    <div class="insight-title">💰 Insight Financeiro: Ticket Médio</div>
+                    <p><strong>Descoberta:</strong> Ticket médio varia 200% entre vendedores, indicando diferentes estratégias de venda.</p>
+                    <p><strong>Implicação:</strong> Oportunidade de padronizar técnicas de upselling e cross-selling.</p>
+                    <p><strong>Ação Recomendada:</strong> Workshop de técnicas de venda consultiva e bundling de produtos.</p>
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Metodologia de Análise</h3>
+                    <p><strong>1. Coleta de Dados:</strong> Extração automatizada de sistemas CRM/ERP</p>
+                    <p><strong>2. Limpeza:</strong> Remoção de outliers e padronização de formatos</p>
+                    <p><strong>3. Análise Exploratória:</strong> Identificação de padrões e correlações</p>
+                    <p><strong>4. Aplicação de Prompts:</strong> Uso de IA para insights avançados</p>
+                    <p><strong>5. Validação:</strong> Cruzamento com conhecimento de negócio</p>
+                    <p><strong>6. Implementação:</strong> Tradução em ações concretas</p>
+                </div>
+            </div>
+            
+            <div id="dashboard" class="tab-content">
+                <h2>Dashboard Interativo</h2>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h3>📈 Evolução Mensal das Vendas</h3>
+                        <div class="chart-container">
+                            <canvas id="salesChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>🥧 Distribuição por Categoria</h3>
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h3>👥 Performance dos Vendedores</h3>
+                        <div class="chart-container">
+                            <canvas id="sellersChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>🗺️ Vendas por Região</h3>
+                        <div class="chart-container">
+                            <canvas id="regionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados simulados de vendas
+        let salesData = [];
+        
+        // Gerar dados de exemplo
+        function generateSampleData() {
+            salesData = [];
+            const vendedores = ['Ana Silva', 'Carlos Santos', 'Maria Oliveira', 'João Costa', 'Paula Lima', 'Roberto Souza', 'Fernanda Alves', 'Diego Pereira'];
+            const produtos = ['Smartphone Pro', 'Laptop Business', 'Tablet Kids', 'Smartwatch', 'Fones Bluetooth', 'Monitor 4K', 'Teclado Mecânico', 'Mouse Gaming'];
+            const categorias = ['Smartphones', 'Laptops', 'Tablets', 'Wearables', 'Áudio', 'Monitores', 'Periféricos', 'Gaming'];
+            const regioes = ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul'];
+            
+            for (let i = 0; i < 500; i++) {
+                const vendedor = vendedores[Math.floor(Math.random() * vendedores.length)];
+                const produto = produtos[Math.floor(Math.random() * produtos.length)];
+                const categoria = categorias[produtos.indexOf(produto)];
+                const regiao = regioes[Math.floor(Math.random() * regioes.length)];
+                const quantidade = Math.floor(Math.random() * 10) + 1;
+                const valorUnitario = Math.floor(Math.random() * 2000) + 100;
+                const total = quantidade * valorUnitario;
+                
+                // Data aleatória em 2024
+                const mes = Math.floor(Math.random() * 12) + 1;
+                const dia = Math.floor(Math.random() * 28) + 1;
+                const data = `2024-${mes.toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}`;
+                
+                salesData.push({
+                    data,
+                    vendedor,
+                    produto,
+                    categoria,
+                    quantidade,
+                    valorUnitario,
+                    total,
+                    regiao
+                });
+            }
+            
+            updateMetrics();
+            updateTable();
+            updateCharts();
+        }
+        
+        // Atualizar métricas
+        function updateMetrics() {
+            const totalRecords = salesData.length;
+            const totalRevenue = salesData.reduce((sum, sale) => sum + sale.total, 0);
+            const avgTicket = totalRevenue / totalRecords;
+            const maxSale = Math.max(...salesData.map(sale => sale.total));
+            const uniqueSellers = [...new Set(salesData.map(sale => sale.vendedor))].length;
+            const uniqueProducts = [...new Set(salesData.map(sale => sale.produto))].length;
+            
+            document.getElementById('totalRecords').textContent = totalRecords.toLocaleString();
+            document.getElementById('totalRevenue').textContent = 'R$ ' + totalRevenue.toLocaleString();
+            document.getElementById('avgTicket').textContent = 'R$ ' + avgTicket.toFixed(2);
+            document.getElementById('maxSale').textContent = 'R$ ' + maxSale.toLocaleString();
+            document.getElementById('totalSellers').textContent = uniqueSellers;
+            document.getElementById('totalProducts').textContent = uniqueProducts;
+            document.getElementById('goalAchieved').textContent = '87%';
+        }
+        
+        // Atualizar tabela
+        function updateTable() {
+            const tbody = document.getElementById('salesTable').querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            // Mostrar apenas os primeiros 10 registros
+            salesData.slice(0, 10).forEach(sale => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${sale.data}</td>
+                    <td>${sale.vendedor}</td>
+                    <td>${sale.produto}</td>
+                    <td>${sale.categoria}</td>
+                    <td>${sale.quantidade}</td>
+                    <td>R$ ${sale.valorUnitario.toLocaleString()}</td>
+                    <td>R$ ${sale.total.toLocaleString()}</td>
+                    <td>${sale.regiao}</td>
+                `;
+            });
+        }
+        
+        // Atualizar gráficos
+        function updateCharts() {
+            updateSalesChart();
+            updateCategoryChart();
+            updateSellersChart();
+            updateRegionChart();
+        }
+        
+        function updateSalesChart() {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            
+            // Agrupar vendas por mês
+            const monthlyData = {};
+            salesData.forEach(sale => {
+                const month = sale.data.substring(0, 7);
+                monthlyData[month] = (monthlyData[month] || 0) + sale.total;
+            });
+            
+            const months = Object.keys(monthlyData).sort();
+            const values = months.map(month => monthlyData[month]);
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Vendas Mensais (R$)',
+                        data: values,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateCategoryChart() {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            // Agrupar por categoria
+            const categoryData = {};
+            salesData.forEach(sale => {
+                categoryData[sale.categoria] = (categoryData[sale.categoria] || 0) + sale.total;
+            });
+            
+            const categories = Object.keys(categoryData);
+            const values = Object.values(categoryData);
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: [
+                            '#667eea', '#764ba2', '#f093fb', '#f5576c',
+                            '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        function updateSellersChart() {
+            const ctx = document.getElementById('sellersChart').getContext('2d');
+            
+            // Agrupar por vendedor
+            const sellerData = {};
+            salesData.forEach(sale => {
+                sellerData[sale.vendedor] = (sellerData[sale.vendedor] || 0) + sale.total;
+            });
+            
+            const sellers = Object.keys(sellerData);
+            const values = Object.values(sellerData);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sellers,
+                    datasets: [{
+                        label: 'Vendas por Vendedor (R$)',
+                        data: values,
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateRegionChart() {
+            const ctx = document.getElementById('regionChart').getContext('2d');
+            
+            // Agrupar por região
+            const regionData = {};
+            salesData.forEach(sale => {
+                regionData[sale.regiao] = (regionData[sale.regiao] || 0) + sale.total;
+            });
+            
+            const regions = Object.keys(regionData);
+            const values = Object.values(regionData);
+            
+            new Chart(ctx, {
+                type: 'polarArea',
+                data: {
+                    labels: regions,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(118, 75, 162, 0.8)',
+                            'rgba(240, 147, 251, 0.8)',
+                            'rgba(245, 87, 108, 0.8)',
+                            'rgba(79, 172, 254, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        // Exportar para Excel
+        function exportToExcel() {
+            const ws = XLSX.utils.json_to_sheet(salesData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Vendas");
+            XLSX.writeFile(wb, "relatorio_vendas.xlsx");
+        }
+        
+        // Alternar entre abas
+        function showTab(tabName) {
+            // Esconder todas as abas
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
